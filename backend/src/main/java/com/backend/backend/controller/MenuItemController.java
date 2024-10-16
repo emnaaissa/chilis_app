@@ -1,7 +1,7 @@
 package com.backend.backend.controller;
 
 import com.backend.backend.model.MenuItem;
-import com.backend.backend.service.MenuService;
+import com.backend.backend.service.MenuItemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,10 +11,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/menu")
-public class MenuController {
+public class MenuItemController {
 
     @Autowired
-    private MenuService menuService;
+    private MenuItemService menuService;
 
     // POST: Add a new menu item
     @PostMapping

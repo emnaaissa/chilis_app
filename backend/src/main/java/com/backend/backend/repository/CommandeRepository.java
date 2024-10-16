@@ -1,12 +1,11 @@
 package com.backend.backend.repository;
 
-import com.backend.backend.model.MenuItem;
+import com.backend.backend.model.Commande;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
-public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
+public interface CommandeRepository extends JpaRepository<Commande, Long> {
     // Vous pouvez ajouter des méthodes de recherche personnalisées si nécessaire
 }
+

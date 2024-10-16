@@ -1,35 +1,44 @@
 package com.backend.backend.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+
 
 @Entity
+@Table(name = "MenuItem")
 public class MenuItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long idItem;
 
-    private String name;
-    private Double price;
+    private String nom;
     private String description;
-    private String imageUrl;
+    private double prix;
+    private String image;
 
-    public String getName() {
-        return name;
+    // Constructeur pour initialiser avec l'ID
+    public MenuItem(Long idItem) {
+        this.idItem = idItem;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    // Constructeur par défaut
+    public MenuItem() {}
+
+    // Getters and Setters
+
+    public Long getIdItem() {
+        return idItem;
     }
 
-    public Double getPrice() {
-        return price;
+    public void setIdItem(Long idItem) {
+        this.idItem = idItem;
     }
 
-    public void setPrice(Double price) {
-        this.price = price;
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
     }
 
     public String getDescription() {
@@ -40,19 +49,19 @@ public class MenuItem {
         this.description = description;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public double getPrix() {
+        return prix;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setPrix(double prix) {
+        this.prix = prix;
     }
 
-    public Long getId() {
-        return id;
+    public String getImage() {
+        return image;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setImage(String image) {
+        this.image = image;
     }
 }
