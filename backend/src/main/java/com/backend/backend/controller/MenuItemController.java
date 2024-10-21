@@ -20,10 +20,9 @@ public class MenuItemController {
     @PostMapping
     public ResponseEntity<MenuItem> addMenuItem(@RequestBody MenuItem menuItem) {
         try {
-            MenuItem savedMenuItem = menuService.addMenuItem(menuItem);
+            MenuItem savedMenuItem = menuService.createMenuItem(menuItem);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedMenuItem);
         } catch (Exception e) {
-            // Log the error message
             System.err.println("Error adding menu item: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(null);
@@ -56,7 +55,6 @@ public class MenuItemController {
         }
     }
 
-
     // DELETE: Remove a menu item by ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMenuItem(@PathVariable Long id) {
@@ -68,5 +66,4 @@ public class MenuItemController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
-
 }

@@ -2,10 +2,10 @@ package com.backend.backend.model;
 
 import jakarta.persistence.*;
 
-
 @Entity
 @Table(name = "MenuItem")
 public class MenuItem {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idItem;
@@ -15,16 +15,14 @@ public class MenuItem {
     private double prix;
     private String image;
 
-    // Constructeur pour initialiser avec l'ID
+    // Constructors
+    public MenuItem() {}
+
     public MenuItem(Long idItem) {
         this.idItem = idItem;
     }
 
-    // Constructeur par défaut
-    public MenuItem() {}
-
     // Getters and Setters
-
     public Long getIdItem() {
         return idItem;
     }
