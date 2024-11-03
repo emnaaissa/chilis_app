@@ -16,16 +16,15 @@ public class MenuItemController {
     @Autowired
     private MenuItemService menuService;
 
-    // POST: Add a new menu item
+    // POST: Add a new menu item with category ID
     @PostMapping
-    public ResponseEntity<MenuItem> addMenuItem(@RequestBody MenuItem menuItem) {
+    public ResponseEntity<MenuItem> addMenuItem(@RequestBody MenuItem menuItem, @RequestParam Long categoryId) {
         try {
-            MenuItem savedMenuItem = menuService.createMenuItem(menuItem);
+            MenuItem savedMenuItem = menuService.createMenuItem(menuItem, categoryId);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedMenuItem);
         } catch (Exception e) {
             System.err.println("Error adding menu item: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
@@ -43,11 +42,11 @@ public class MenuItemController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // PUT: Update an existing menu item by ID
+    // PUT: Update an existing menu item by ID with category ID
     @PutMapping("/{id}")
-    public ResponseEntity<MenuItem> updateMenuItem(@PathVariable Long id, @RequestBody MenuItem updatedMenuItem) {
+    public ResponseEntity<MenuItem> updateMenuItem(@PathVariable Long id, @RequestBody MenuItem updatedMenuItem, @RequestParam Long categoryId) {
         try {
-            MenuItem updated = menuService.updateMenuItem(id, updatedMenuItem);
+            MenuItem updated = menuService.updateMenuItem(id, updatedMenuItem, categoryId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             System.err.println("Error updating menu item: " + e.getMessage());

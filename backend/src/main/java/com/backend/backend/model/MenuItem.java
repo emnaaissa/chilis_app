@@ -15,6 +15,10 @@ public class MenuItem {
     private double prix;
     private String image;
 
+    @ManyToOne
+    @JoinColumn(name = "id_categorie", nullable = false)
+    private Category category;
+
     // Constructors
     public MenuItem() {}
 
@@ -61,5 +65,13 @@ public class MenuItem {
 
     public void setImage(String image) {
         this.image = image;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 }
