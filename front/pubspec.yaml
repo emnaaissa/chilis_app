@@ -5,17 +5,18 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ^3.5.3
 
 dependencies:
   flutter:
     sdk: flutter
+  http: ^0.13.4
 
-  # Icons for iOS
+  # Cupertino icons for iOS
   cupertino_icons: ^1.0.8
 
   # HTTP package to handle network requests
-  http: ^0.13.3
+  # Use latest stable version if available
 
   # State management package
   provider: ^6.0.5
@@ -30,8 +31,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^4.0.0
-  build_runner: ^2.2.0 # Required for code generation (e.g., json_serializable)
+  flutter_lints: ^2.0.0
+  build_runner: ^2.3.0 # Updated version for compatibility with json_serializable
 
 flutter:
   uses-material-design: true
