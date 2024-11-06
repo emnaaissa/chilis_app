@@ -2,7 +2,6 @@ package com.backend.backend.model;
 
 import jakarta.persistence.*;
 
-
 @Entity
 @Table(name = "Client")
 public class Client {
@@ -15,8 +14,10 @@ public class Client {
     private String motDePasse;
     private int pointsCadeaux;
 
-    // Getters and Setters
+    // New field for telephone number
+    private String tel;  // Add the 'tel' attribute
 
+    // Getters and Setters
     public Long getIdClient() {
         return idClient;
     }
@@ -56,5 +57,12 @@ public class Client {
     public void setPointsCadeaux(int pointsCadeaux) {
         this.pointsCadeaux = pointsCadeaux;
     }
-}
 
+    public String getTel() {
+        return tel;
+    }
+
+    public void setTel(String tel) {
+        this.tel = tel;
+    }
+}
