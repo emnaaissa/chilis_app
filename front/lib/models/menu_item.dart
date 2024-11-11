@@ -3,9 +3,9 @@ class MenuItem {
   final String nom;
   final String description;
   final double prix;
-  final String image;
+  String image;
   final int categoryId;
-  final String categoryName; // Add this line
+  final String categoryName;
 
   MenuItem({
     required this.idItem,
@@ -14,10 +14,18 @@ class MenuItem {
     required this.prix,
     required this.image,
     required this.categoryId,
-    required this.categoryName, // Add this line
+    required this.categoryName,
   });
 
-  factory MenuItem.fromJson(Map<String, dynamic> json) {
+  @override
+  String toString() {
+    return 'MenuItem(name: $nom, description: $description, price: $prix, image: $image, category: $categoryName)';
+  }
+
+// other methods like fromJson, toJson, etc.
+
+
+factory MenuItem.fromJson(Map<String, dynamic> json) {
     return MenuItem(
       idItem: json['idItem'] as int? ?? 0,
       nom: json['nom'] as String? ?? '',
@@ -25,7 +33,7 @@ class MenuItem {
       prix: (json['prix'] as num?)?.toDouble() ?? 0.0,
       image: json['image'] as String? ?? '',
       categoryId: json['category']?['idCategorie'] as int? ?? 0,
-      categoryName: json['category']?['nomCategorie'] as String? ?? '', // This should remain
+      categoryName: json['category']?['nomCategorie'] as String? ?? '',
     );
   }
 
@@ -35,7 +43,6 @@ class MenuItem {
     'description': description,
     'prix': prix,
     'image': image,
-    'categoryId': categoryId, // Assuming categoryId is expected as a direct field
+    'categoryId': categoryId,
   };
-
 }

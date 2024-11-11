@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/menu_item.dart';
 import '../services/menu_item_service.dart';
-import 'package:http/http.dart' as http; // Add this import for HTTP requests
-import 'dart:convert'; // Add this import for JSON decoding
+import 'image_upload_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class MenuItemsScreen extends StatefulWidget {
   @override
@@ -12,7 +13,7 @@ class MenuItemsScreen extends StatefulWidget {
 class _MenuItemsScreenState extends State<MenuItemsScreen> {
   final MenuItemService _menuItemService = MenuItemService();
   List<MenuItem> _menuItems = [];
-  List<String> _categories = []; // Assuming you'll fetch categories as well
+  List<Map<String, dynamic>> _categories = [];
   String _selectedCategory = '';
   bool _isLoading = false;
 
@@ -20,32 +21,31 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
   void initState() {
     super.initState();
     _fetchMenuItems();
-    _fetchCategories(); // Fetch categories if needed
+    _fetchCategories();
   }
 
   Future<void> _fetchMenuItems() async {
     setState(() => _isLoading = true);
     try {
       final items = await _menuItemService.fetchMenuItems();
-      print('Fetched items: $items'); // Debug log to check data received
       setState(() {
         _menuItems = items;
       });
     } catch (e) {
-      print('Error fetching items: $e'); // Debug log for errors
+      print('Error fetching items: $e');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _fetchCategories() async {
-    setState(() => _isLoading = true); // Set loading state
+    setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('http://10.0.2.2:9092/api/categories')); // Replace with your API URL
+      final response = await http.get(Uri.parse('http://10.0.2.2:9092/api/categories'));
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
         setState(() {
-          _categories = jsonResponse.map((category) => category['nomCategorie'] as String).toList(); // Adjust based on your JSON structure
+          _categories = jsonResponse.map((category) => category as Map<String, dynamic>).toList();
         });
       } else {
         throw Exception('Failed to load categories');
@@ -53,7 +53,7 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
     } catch (e) {
       print('Error fetching categories: $e');
     } finally {
-      setState(() => _isLoading = false); // Reset loading state
+      setState(() => _isLoading = false);
     }
   }
 
@@ -61,12 +61,22 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
     final nameController = TextEditingController(text: menuItem?.nom ?? '');
     final descriptionController = TextEditingController(text: menuItem?.description ?? '');
     final priceController = TextEditingController(text: menuItem?.prix.toString() ?? '0.0');
+    _selectedCategory = menuItem?.categoryName ?? '';
 
-    if (menuItem != null) {
-      _selectedCategory = menuItem.categoryName; // Initialize selected category when editing
-    }
+    final category = _categories.firstWhere(
+          (category) => category['nomCategorie'] == _selectedCategory,
+      orElse: () => {'idCategorie': 0},
+    );
 
-    bool isLoading = false;
+    final MenuItem newItem = MenuItem(
+      idItem: menuItem?.idItem ?? 0,
+      nom: nameController.text,
+      description: descriptionController.text,
+      prix: double.tryParse(priceController.text) ?? 0.0,
+      image: '',
+      categoryId: category['idCategorie'],
+      categoryName: _selectedCategory,
+    );
 
     await showDialog(
       context: context,
@@ -81,14 +91,13 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
                   TextField(controller: nameController, decoration: InputDecoration(labelText: 'Name')),
                   TextField(controller: descriptionController, decoration: InputDecoration(labelText: 'Description')),
                   TextField(controller: priceController, decoration: InputDecoration(labelText: 'Price')),
-                  // Dropdown for category selection
                   DropdownButton<String>(
                     value: _selectedCategory.isEmpty ? null : _selectedCategory,
                     hint: Text('Select Category'),
-                    items: _categories.map((String category) {
+                    items: _categories.map((category) {
                       return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(category),
+                        value: category['nomCategorie'],
+                        child: Text(category['nomCategorie']),
                       );
                     }).toList(),
                     onChanged: (newValue) {
@@ -97,34 +106,43 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
                       });
                     },
                   ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final imageUrl = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ImageUploadScreen(
+                            onImageUploaded: (url) {
+                              setState(() {
+                                newItem.image = url;
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                      if (imageUrl != null) {
+                        setState(() {
+                          newItem.image = imageUrl;
+                        });
+                      }
+                    },
+                    child: Text('Upload Image'),
+                  ),
                 ],
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
                 TextButton(
-                  onPressed: isLoading ? null : () async {
-                    setState(() => isLoading = true);
-                    final newItem = MenuItem(
-                      idItem: menuItem?.idItem ?? 0,
-                      nom: nameController.text,
-                      description: descriptionController.text,
-                      prix: double.tryParse(priceController.text) ?? 0.0, // Safely parse price
-                      image: '', // Placeholder for image URL
-                      categoryId: _categories.indexOf(_selectedCategory) + 1, // Use the index as ID (1-based)
-                      categoryName: _selectedCategory, // Pass the selected category name
-                    );
-
+                  onPressed: () async {
                     if (menuItem == null) {
                       await _menuItemService.addMenuItem(newItem);
                     } else {
                       await _menuItemService.updateMenuItem(newItem);
                     }
-
-                    setState(() => isLoading = false);
                     Navigator.pop(context);
                     _fetchMenuItems();
                   },
-                  child: isLoading ? CircularProgressIndicator() : Text(menuItem == null ? 'Add' : 'Save'),
+                  child: Text(menuItem == null ? 'Add' : 'Save'),
                 ),
               ],
             );
@@ -142,24 +160,41 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Manage Menu Items')),
+      appBar: AppBar(
+        title: Text('Manage Menu Items'),
+        backgroundColor: Colors.red, // Set red color for AppBar
+      ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
-          : _categories.isEmpty // Check if categories are loaded
-          ? Center(child: Text('No categories available.'))
           : ListView.builder(
         itemCount: _menuItems.length,
         itemBuilder: (context, index) {
           final menuItem = _menuItems[index];
-          return ListTile(
-            title: Text(menuItem.nom),
-            subtitle: Text('${menuItem.description} - \$${menuItem.prix}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(icon: Icon(Icons.edit), onPressed: () => _addOrEditMenuItem(menuItem: menuItem)),
-                IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteMenuItem(menuItem.idItem)),
-              ],
+          return Card(
+            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            elevation: 4,
+            child: ListTile(
+              contentPadding: EdgeInsets.all(16),
+              leading: menuItem.image.isNotEmpty
+                  ? Image.network(menuItem.image, width: 50, height: 50, fit: BoxFit.cover)
+                  : Icon(Icons.image, size: 50),
+              title: Text(menuItem.nom),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(menuItem.description),
+                  SizedBox(height: 4),
+                  Text('Price: \$${menuItem.prix}'),
+                  Text('Category: ${menuItem.categoryName}'),
+                ],
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(icon: Icon(Icons.edit), onPressed: () => _addOrEditMenuItem(menuItem: menuItem)),
+                  IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteMenuItem(menuItem.idItem)),
+                ],
+              ),
             ),
           );
         },
@@ -167,6 +202,7 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditMenuItem(),
         child: Icon(Icons.add),
+        backgroundColor: Colors.red, // Set red color for the floating button
       ),
     );
   }

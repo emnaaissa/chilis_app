@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'screens/dashboard.dart';
+import 'package:frontend/screens/screens.dart';
+import 'screens/dashboard_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(MyApp());
 }
 
@@ -13,7 +20,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.red,
       ),
-      home: Dashboard(),
+      home: DashboardScreen(
+        onSelectScreen: (Screens screen) {
+          // handle screen navigation logic here
+        },
+      ),
     );
   }
 }
