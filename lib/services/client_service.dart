@@ -1,4 +1,3 @@
-// services/client_service.dart
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -8,7 +7,7 @@ class ClientService {
   final String baseUrl = 'http://10.0.2.2:9092/api/clients';
 
   Future<List<Client>> getClients() async {
-    final response = await http.get(Uri.parse('http://10.0.2.2:9092/api/clients'));
+    final response = await http.get(Uri.parse(baseUrl));
     if (response.statusCode == 200) {
       List jsonResponse = json.decode(response.body);
       return jsonResponse.map((client) => Client.fromJson(client)).toList();
@@ -17,17 +16,15 @@ class ClientService {
     }
   }
 
-  Future<void> deleteClient(int id) async {
+  Future<void> deleteClient(String id) async {
     final response = await http.delete(Uri.parse('$baseUrl/$id'));
 
-    if (response.statusCode == 204) {
-      // Deletion was successful, no content returned
-      print('Client with ID $id successfully deleted.');
-    } else if (response.statusCode == 404) {
-      // Handle the case where client is not found
-      throw Exception('Client not found');
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      // 2xx responses indicate success.
+      print('Client with ID $id successfully deleted. Response: ${response.body}');
     } else {
-      // Handle other cases (e.g., server errors)
+      // Log details for debugging
+      print('Failed to delete client. Status code: ${response.statusCode}, Response: ${response.body}');
       throw Exception('Failed to delete client');
     }
   }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../models/category.dart';
 import '../models/menu_item.dart';
 import '../services/menu_item_service.dart';
-import 'image_upload_screen.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../services/category_service.dart';
+import 'image_upload_screen.dart';  // Import the ImageUploadScreen
 
 class MenuItemsScreen extends StatefulWidget {
   @override
@@ -12,8 +13,9 @@ class MenuItemsScreen extends StatefulWidget {
 
 class _MenuItemsScreenState extends State<MenuItemsScreen> {
   final MenuItemService _menuItemService = MenuItemService();
+  final CategoryService _categoryService = CategoryService();
   List<MenuItem> _menuItems = [];
-  List<Map<String, dynamic>> _categories = [];
+  List<Category> _categories = [];
   String _selectedCategory = '';
   bool _isLoading = false;
 
@@ -39,44 +41,31 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
   }
 
   Future<void> _fetchCategories() async {
-    setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('http://10.0.2.2:9092/api/categories'));
-      if (response.statusCode == 200) {
-        List jsonResponse = json.decode(response.body);
-        setState(() {
-          _categories = jsonResponse.map((category) => category as Map<String, dynamic>).toList();
-        });
-      } else {
-        throw Exception('Failed to load categories');
-      }
+      final categories = await _categoryService.fetchCategories();
+      setState(() {
+        _categories = categories;
+      });
     } catch (e) {
       print('Error fetching categories: $e');
-    } finally {
-      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteMenuItem(String idItem) async {
+    try {
+      await _menuItemService.deleteMenuItem(idItem);
+      _fetchMenuItems(); // Refresh the menu items list after deletion
+    } catch (e) {
+      print('Error deleting item: $e');
     }
   }
 
   Future<void> _addOrEditMenuItem({MenuItem? menuItem}) async {
     final nameController = TextEditingController(text: menuItem?.nom ?? '');
     final descriptionController = TextEditingController(text: menuItem?.description ?? '');
-    final priceController = TextEditingController(text: menuItem?.prix.toString() ?? '0.0');
-    _selectedCategory = menuItem?.categoryName ?? '';
-
-    final category = _categories.firstWhere(
-          (category) => category['nomCategorie'] == _selectedCategory,
-      orElse: () => {'idCategorie': 0},
-    );
-
-    final MenuItem newItem = MenuItem(
-      idItem: menuItem?.idItem ?? 0,
-      nom: nameController.text,
-      description: descriptionController.text,
-      prix: double.tryParse(priceController.text) ?? 0.0,
-      image: '',
-      categoryId: category['idCategorie'],
-      categoryName: _selectedCategory,
-    );
+    final priceController = TextEditingController(text: menuItem?.prix?.toString() ?? '0.0');
+    String selectedCategoryId = menuItem?.categoryId ?? '';
+    String? imageUrl = menuItem?.image ?? ''; // Set default if null
 
     await showDialog(
       context: context,
@@ -85,62 +74,91 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(menuItem == null ? 'Add Menu Item' : 'Edit Menu Item'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(controller: nameController, decoration: InputDecoration(labelText: 'Name')),
-                  TextField(controller: descriptionController, decoration: InputDecoration(labelText: 'Description')),
-                  TextField(controller: priceController, decoration: InputDecoration(labelText: 'Price')),
-                  DropdownButton<String>(
-                    value: _selectedCategory.isEmpty ? null : _selectedCategory,
-                    hint: Text('Select Category'),
-                    items: _categories.map((category) {
-                      return DropdownMenuItem<String>(
-                        value: category['nomCategorie'],
-                        child: Text(category['nomCategorie']),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedCategory = newValue ?? '';
-                      });
-                    },
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final imageUrl = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ImageUploadScreen(
-                            onImageUploaded: (url) {
-                              setState(() {
-                                newItem.image = url;
-                              });
-                            },
-                          ),
-                        ),
-                      );
-                      if (imageUrl != null) {
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(labelText: 'Name'),
+                    ),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: InputDecoration(labelText: 'Description'),
+                    ),
+                    TextField(
+                      controller: priceController,
+                      decoration: InputDecoration(labelText: 'Price'),
+                      keyboardType: TextInputType.number,
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategoryId.isEmpty ? null : selectedCategoryId,
+                      hint: Text('Select Category'),
+                      items: _categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category.idCategorie,
+                          child: Text(category.categorie),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
                         setState(() {
-                          newItem.image = imageUrl;
+                          selectedCategoryId = newValue!;
                         });
-                      }
-                    },
-                    child: Text('Upload Image'),
-                  ),
-                ],
+                      },
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final uploadedImageUrl = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ImageUploadScreen(
+                              onImageUploaded: (url) {
+                                setState(() {
+                                  imageUrl = url;  // Set the image URL
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                        if (uploadedImageUrl != null) {
+                          setState(() {
+                            imageUrl = uploadedImageUrl;
+                          });
+                        }
+                      },
+                      icon: Icon(Icons.upload_file),
+                      label: Text('Upload Image'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel'),
+                ),
                 TextButton(
                   onPressed: () async {
+                    final newItem = MenuItem(
+                      idItem: menuItem?.idItem ?? '',
+                      nom: nameController.text,
+                      description: descriptionController.text,
+                      prix: double.tryParse(priceController.text) ?? 0.0,
+                      image: imageUrl ?? '', // Ensure the image URL is stored correctly
+                      categoryId: selectedCategoryId,
+                    );
+
                     if (menuItem == null) {
                       await _menuItemService.addMenuItem(newItem);
                     } else {
                       await _menuItemService.updateMenuItem(newItem);
                     }
                     Navigator.pop(context);
-                    _fetchMenuItems();
+                    _fetchMenuItems(); // Refresh after saving the menu item
                   },
                   child: Text(menuItem == null ? 'Add' : 'Save'),
                 ),
@@ -152,17 +170,12 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
     );
   }
 
-  Future<void> _deleteMenuItem(int idItem) async {
-    await _menuItemService.deleteMenuItem(idItem);
-    _fetchMenuItems();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Manage Menu Items'),
-        backgroundColor: Colors.red, // Set red color for AppBar
+        backgroundColor: Colors.red,
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -170,6 +183,11 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
         itemCount: _menuItems.length,
         itemBuilder: (context, index) {
           final menuItem = _menuItems[index];
+          final category = _categories.firstWhere(
+                (category) => category.idCategorie == menuItem.categoryId,
+            orElse: () => Category(idCategorie: '0', categorie: 'Unknown', etat: 'inactive', img: ''),
+          );
+
           return Card(
             margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             elevation: 4,
@@ -185,14 +203,20 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
                   Text(menuItem.description),
                   SizedBox(height: 4),
                   Text('Price: \$${menuItem.prix}'),
-                  Text('Category: ${menuItem.categoryName}'),
+                  Text('Category: ${category.categorie}'),
                 ],
               ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+              trailing: Wrap(
+                spacing: 8,
                 children: [
-                  IconButton(icon: Icon(Icons.edit), onPressed: () => _addOrEditMenuItem(menuItem: menuItem)),
-                  IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteMenuItem(menuItem.idItem)),
+                  IconButton(
+                    icon: Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () => _addOrEditMenuItem(menuItem: menuItem),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _deleteMenuItem(menuItem.idItem),
+                  ),
                 ],
               ),
             ),
@@ -200,9 +224,9 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.red,
         onPressed: () => _addOrEditMenuItem(),
         child: Icon(Icons.add),
-        backgroundColor: Colors.red, // Set red color for the floating button
       ),
     );
   }

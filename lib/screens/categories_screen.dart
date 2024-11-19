@@ -28,7 +28,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         _categories = categories;
       });
     } catch (e) {
-      print('Error fetching categories: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load categories.')),
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -36,8 +38,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
-  Future<void> _addCategory() async {
-    final nameController = TextEditingController();
+  Future<void> _addOrEditCategory({Category? category}) async {
+    final nameController = TextEditingController(text: category?.categorie);
     bool isLoading = false;
 
     await showDialog(
@@ -46,14 +48,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Add Category'),
-              content: TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Category Name',
-                  hintText: 'Enter the category name',
-                  border: OutlineInputBorder(),
-                ),
+              title: Text(category == null ? 'Add Category' : 'Edit Category'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Category Name',
+                      hintText: 'Enter category name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
               ),
               actions: [
                 TextButton(
@@ -65,18 +72,31 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       ? null
                       : () async {
                     setState(() => isLoading = true);
-                    final newCategory = Category(
-                      id: 0,
-                      name: nameController.text,
-                    );
-                    await _categoryService.addCategory(newCategory);
-                    setState(() => isLoading = false);
-                    Navigator.pop(context);
-                    _fetchCategories();
+                    try {
+                      final newCategory = Category(
+                        idCategorie: category?.idCategorie ?? '',
+                        categorie: nameController.text,
+                        etat: category?.etat ?? 'active',
+                        img: category?.img ?? '',
+                      );
+                      if (category == null) {
+                        await _categoryService.addCategory(newCategory);
+                      } else {
+                        await _categoryService.updateCategory(newCategory);
+                      }
+                      _fetchCategories();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Operation failed.')),
+                      );
+                    } finally {
+                      setState(() => isLoading = false);
+                      Navigator.pop(context);
+                    }
                   },
                   child: isLoading
                       ? CircularProgressIndicator(color: Colors.white)
-                      : Text('Add'),
+                      : Text(category == null ? 'Add' : 'Update'),
                 ),
               ],
             );
@@ -86,57 +106,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
   }
 
-  Future<void> _editCategory(Category category) async {
-    final nameController = TextEditingController(text: category.name);
-    bool isLoading = false;
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Edit Category'),
-              content: TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Category Name',
-                  hintText: 'Edit the category name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                    setState(() => isLoading = true);
-                    final updatedCategory = Category(
-                      id: category.id,
-                      name: nameController.text,
-                    );
-                    await _categoryService.updateCategory(updatedCategory);
-                    setState(() => isLoading = false);
-                    Navigator.pop(context);
-                    _fetchCategories();
-                  },
-                  child: isLoading
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _deleteCategory(int id) async {
+  Future<void> _deleteCategory(String idCategorie) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -159,8 +129,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
 
     if (confirm == true) {
-      await _categoryService.deleteCategory(id);
-      _fetchCategories();
+      try {
+        await _categoryService.deleteCategory(idCategorie);
+        _fetchCategories();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete category.')),
+        );
+      }
     }
   }
 
@@ -170,7 +146,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       appBar: AppBar(
         title: Text('Categories'),
         centerTitle: true,
-        backgroundColor: Colors.red, // Red theme for AppBar
+        backgroundColor: Colors.red,
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -180,35 +156,74 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         itemCount: _categories.length,
         itemBuilder: (context, index) {
           final category = _categories[index];
-          return Card(
-            elevation: 4,
-            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: ListTile(
-              contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              title: Text(
-                category.name ?? 'Unnamed',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => _editCategory(category),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteCategory(category.id),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            category.categorie,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'Status: ${category.etat == 'active' ? 'Active' : 'Inactive'}',
+                            style: TextStyle(color: Colors.grey[700]),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      children: [
+                        Switch(
+                          value: category.etat == 'active',
+                          onChanged: (value) async {
+                            final updatedCategory = Category(
+                              idCategorie: category.idCategorie,
+                              categorie: category.categorie,
+                              etat: value ? 'active' : 'inactive',
+                              img: category.img,
+                            );
+                            await _categoryService.updateCategory(updatedCategory);
+                            _fetchCategories();
+                          },
+                          activeColor: Colors.green,
+                          inactiveThumbColor: Colors.red,
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _addOrEditCategory(category: category),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteCategory(category.idCategorie),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addCategory,
-        backgroundColor: Colors.red, // Red theme for FAB
+        onPressed: () => _addOrEditCategory(),
+        backgroundColor: Colors.red,
         child: Icon(Icons.add),
       ),
     );

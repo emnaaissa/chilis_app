@@ -1,11 +1,10 @@
 class MenuItem {
-  final int idItem;
+  final String idItem;
   final String nom;
   final String description;
   final double prix;
   String image;
-  final int categoryId;
-  final String categoryName;
+  final String categoryId;
 
   MenuItem({
     required this.idItem,
@@ -14,29 +13,26 @@ class MenuItem {
     required this.prix,
     required this.image,
     required this.categoryId,
-    required this.categoryName,
   });
 
   @override
   String toString() {
-    return 'MenuItem(name: $nom, description: $description, price: $prix, image: $image, category: $categoryName)';
+    return 'MenuItem(name: $nom, description: $description, price: $prix, image: $image, categoryId: $categoryId)';
   }
 
-// other methods like fromJson, toJson, etc.
-
-
-factory MenuItem.fromJson(Map<String, dynamic> json) {
+  // Factory method to create an instance from JSON
+  factory MenuItem.fromJson(Map<String, dynamic> json) {
     return MenuItem(
-      idItem: json['idItem'] as int? ?? 0,
+      idItem: json['idItem'] as String? ?? '',
       nom: json['nom'] as String? ?? '',
       description: json['description'] as String? ?? '',
       prix: (json['prix'] as num?)?.toDouble() ?? 0.0,
       image: json['image'] as String? ?? '',
-      categoryId: json['category']?['idCategorie'] as int? ?? 0,
-      categoryName: json['category']?['nomCategorie'] as String? ?? '',
+      categoryId: json['categoryId'] as String? ?? '',
     );
   }
 
+  // Method to convert an instance to JSON
   Map<String, dynamic> toJson() => {
     'idItem': idItem,
     'nom': nom,

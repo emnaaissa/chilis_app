@@ -1,4 +1,3 @@
-// lib/services/category_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/category.dart';
@@ -8,7 +7,7 @@ class CategoryService {
 
   // Fetch all categories
   Future<List<Category>> fetchCategories() async {
-    final response = await http.get(Uri.parse('http://10.0.2.2:9092/api/categories'));
+    final response = await http.get(Uri.parse(apiUrl));
 
     if (response.statusCode == 200) {
       List jsonResponse = json.decode(response.body);
@@ -18,9 +17,6 @@ class CategoryService {
     }
   }
 
-
-
-
   // Add a new category
   Future<Category> addCategory(Category category) async {
     final response = await http.post(
@@ -28,7 +24,8 @@ class CategoryService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(category.toJson()),
     );
-    if (response.statusCode == 201) {
+
+    if (response.statusCode == 201 || response.statusCode == 200) { // Adjusting for possible response codes
       return Category.fromJson(jsonDecode(response.body));
     } else {
       throw Exception('Failed to add category');
@@ -38,10 +35,11 @@ class CategoryService {
   // Update an existing category
   Future<Category> updateCategory(Category category) async {
     final response = await http.put(
-      Uri.parse('$apiUrl/${category.id}'),
+      Uri.parse('$apiUrl/${category.idCategorie}'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(category.toJson()),
     );
+
     if (response.statusCode == 200) {
       return Category.fromJson(jsonDecode(response.body));
     } else {
@@ -50,9 +48,13 @@ class CategoryService {
   }
 
   // Delete a category by ID
-  Future<void> deleteCategory(int id) async {
-    final response = await http.delete(Uri.parse('$apiUrl/$id'));
-    if (response.statusCode != 204) {
+  Future<void> deleteCategory(String idCategorie) async {
+    final response = await http.delete(Uri.parse('$apiUrl/$idCategorie'));
+
+    // Check for various successful response codes
+    if (response.statusCode == 204 || response.statusCode == 200) {
+      return; // Deletion was successful
+    } else {
       throw Exception('Failed to delete category');
     }
   }

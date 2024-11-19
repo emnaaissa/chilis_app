@@ -17,29 +17,27 @@ class _ClientsScreenState extends State<ClientsScreen> {
     clients = clientService.getClients(); // Fetch the client list when screen loads
   }
 
-  void _refreshClients() {
+  Future<void> _refreshClients() async {
     setState(() {
       clients = clientService.getClients();
     });
   }
 
-  void _deleteClient(int id) {
-    clientService.deleteClient(id).then((_) {
-      // Refresh the client list after deletion
-      _refreshClients();
+  Future<void> _deleteClient(String id) async { // Use async
+    try {
+      await clientService.deleteClient(id); // Await deletion
+      await _refreshClients(); // Await refresh
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Client deleted successfully')),
       );
-    }).catchError((error) {
-      // Handle error (e.g., show a message to the user)
+    } catch (error) {
       print('Error deleting client: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error deleting client')),
       );
-    });
+    }
   }
 
-  // Show client details in an AlertDialog
   void _showClientDetails(Client client) {
     showDialog(
       context: context,
@@ -54,17 +52,14 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 SizedBox(height: 8),
                 Text('Email: ${client.email}'),
                 SizedBox(height: 8),
-                Text('Phone: ${client.tel ?? 'Not provided'}'),
-                SizedBox(height: 8),
-                Text('Points: ${client.pointsCadeaux ?? 0}'),
-                // Add more client details as needed
+                Text('Phone: ${client.tel}'),
               ],
             ),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: Text('Close'),
             ),
@@ -126,7 +121,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                   ),
                                   TextButton(
                                     onPressed: () {
-                                      _deleteClient(client.idClient);
+                                      _deleteClient(client.id); // Await deletion and refresh
                                       Navigator.of(context).pop();
                                     },
                                     child: Text('Delete', style: TextStyle(color: Colors.red)),
@@ -138,7 +133,6 @@ class _ClientsScreenState extends State<ClientsScreen> {
                         },
                       ),
                       onTap: () {
-                        // When tapping on a client card, show the client's detailed information
                         _showClientDetails(client);
                       },
                     ),

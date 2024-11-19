@@ -1,29 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/PromoCodeScreen.dart';
+import 'package:frontend/screens/banner_screen.dart';
+import 'package:frontend/screens/categories_screen.dart';
+import 'package:frontend/screens/clients_screen.dart';
+import 'package:frontend/screens/menu_items_screen.dart';
+import 'package:frontend/screens/restaurant_screen.dart';
 import '../widgets/sidebar.dart';
 import 'package:frontend/screens/screens.dart';
 
-import 'categories_screen.dart';
-import 'clients_screen.dart';
-import 'menu_items_screen.dart'; // Assuming you have a screens.dart that imports all your screens
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final Function(Screens) onSelectScreen;
 
   DashboardScreen({required this.onSelectScreen});
 
   @override
+  _DashboardScreenState createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Sidebar(onSelectScreen),
+      drawer: Sidebar(widget.onSelectScreen),
       appBar: AppBar(
         title: Text('Admin Dashboard'),
         backgroundColor: Colors.red,
-        leading: IconButton(
-          icon: Icon(Icons.menu),
-          onPressed: () {
-            Scaffold.of(context).openDrawer(); // Open the sidebar drawer
-          },
-        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -32,9 +34,13 @@ class DashboardScreen extends StatelessWidget {
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [
+            _buildDashboardCard(context, 'Banners', Icons.image, Colors.purple, BannerScreen()),
             _buildDashboardCard(context, 'Menu Items', Icons.menu, Colors.blue, MenuItemsScreen()),
             _buildDashboardCard(context, 'Categories', Icons.category, Colors.green, CategoriesScreen()),
             _buildDashboardCard(context, 'Clients', Icons.people, Colors.orange, ClientsScreen()),
+            _buildDashboardCard(context, 'Restaurants', Icons.restaurant, Colors.redAccent, RestaurantScreen()),
+            _buildDashboardCard(context, 'Promo Codes', Icons.card_giftcard, Colors.teal, PromoCodeScreen()),
+
           ],
         ),
       ),
@@ -50,7 +56,7 @@ class DashboardScreen extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => targetScreen),  // Navigate to the respective screen
+            MaterialPageRoute(builder: (context) => targetScreen),
           );
         },
         child: Center(

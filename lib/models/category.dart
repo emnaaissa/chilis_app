@@ -1,22 +1,33 @@
 class Category {
-  final int id;
-  final String name;
+  final String idCategorie;  // Changed type to String to match backend
+  final String categorie;
+  final String etat;
+  final String img;
 
-  Category({required this.id, required this.name});
+  Category({
+    required this.idCategorie,
+    required this.categorie,
+    required this.etat,
+    required this.img,
+  });
 
   // Factory constructor to create a Category object from JSON
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['idCategorie'], // Match the key from the API response
-      name: json['nomCategorie'], // Match the key from the API response
+      idCategorie: json['idCategorie'],
+      categorie: json['categorie'],
+      etat: json['etat'],
+      img: json['img'],
     );
   }
 
   // Convert Category object to JSON
   Map<String, dynamic> toJson() {
     return {
-      'idCategorie': id,
-      'nomCategorie': name,
+      'idCategorie': idCategorie,
+      'categorie': categorie,
+      'etat': etat,
+      'img': img,
     };
   }
 }

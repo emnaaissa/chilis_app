@@ -1,9 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/category.dart';
 import '../models/menu_item.dart';
 
 class MenuItemService {
-  final String apiUrl = 'http://10.0.2.2:9092/api/menu';
+  final String apiUrl = 'http://10.0.2.2:9092/api/menuItems';  // Update the base URL here
+  final String categoriesUrl = 'http://10.0.2.2:9092/api/categories'; // Update the categories endpoint
+
+  Map<String, Category> categoryMap = {};
 
   // Fetch menu items
   Future<List<MenuItem>> fetchMenuItems() async {
@@ -13,6 +17,19 @@ class MenuItemService {
       return data.map((item) => MenuItem.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load menu items');
+    }
+  }
+
+  // Fetch and store categories
+  Future<void> fetchCategories() async {
+    final response = await http.get(Uri.parse(categoriesUrl));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      categoryMap = {
+        for (var category in data) Category.fromJson(category).idCategorie: Category.fromJson(category),
+      };
+    } else {
+      throw Exception('Failed to load categories');
     }
   }
 
@@ -55,7 +72,7 @@ class MenuItemService {
   }
 
   // Delete a menu item
-  Future<void> deleteMenuItem(int idItem) async {
+  Future<void> deleteMenuItem(String idItem) async {
     try {
       final response = await http.delete(Uri.parse('$apiUrl/$idItem'));
       if (response.statusCode == 200) {
