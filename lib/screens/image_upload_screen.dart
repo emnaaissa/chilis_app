@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:image/image.dart' as img;
-
+import 'package:path/path.dart' as path;
 
 class ImageUploadScreen extends StatefulWidget {
   final Function(String imageUrl) onImageUploaded;
@@ -20,20 +18,21 @@ class _ImageUploadScreenState extends State<ImageUploadScreen> {
   bool _isUploading = false;
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800, // Limit image width
+      maxHeight: 800, // Limit image height
+      imageQuality: 85, // Compress image quality
+    );
+
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
       });
-      print('Image selected: ${pickedFile.path}');
-    } else {
-      print('No image selected');
     }
   }
 
-
-
-  Future<void> _uploadImage(BuildContext context) async {
+  Future<void> _uploadImage() async {
     if (_image == null) return;
 
     setState(() {
@@ -41,42 +40,29 @@ class _ImageUploadScreenState extends State<ImageUploadScreen> {
     });
 
     try {
-      // Resize image before upload
-      img.Image? image = img.decodeImage(_image!.readAsBytesSync());
-      img.Image resized = img.copyResize(image!, width: 600);
+      // Create a unique filename
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}${path.extension(_image!.path)}';
+      final Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('menu-items')
+          .child(fileName);
 
-      // Save the resized image to a new file
-      File resizedFile = File('${_image!.parent.path}/resized_${_image!.uri.pathSegments.last}');
-      resizedFile.writeAsBytesSync(img.encodeJpg(resized));
+      // Upload the file
+      final UploadTask uploadTask = storageRef.putFile(_image!);
 
-      // Create a unique name for the image
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference storageRef = FirebaseStorage.instance.ref().child('images/$fileName');
+      // Get download URL after successful upload
+      final TaskSnapshot taskSnapshot = await uploadTask;
+      final String downloadUrl = await taskSnapshot.ref.getDownloadURL();
 
-      // Create the upload task
-      UploadTask uploadTask = storageRef.putFile(resizedFile);
-
-
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        print('Upload progress: ${snapshot.bytesTransferred}/${snapshot.totalBytes}');
-      }, onError: (e) {
-        print('Error during upload: $e');
-        // You can add retry logic here if desired
-      });
-
-      TaskSnapshot snapshot = await uploadTask;
-      print('Upload complete: ${snapshot.ref.fullPath}');
-
-
-      // Get the download URL of the uploaded image
-      String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      // Callback to return the uploaded image URL
+      // Call the callback with the download URL
       widget.onImageUploaded(downloadUrl);
+
+      // Close the screen and return the URL
       Navigator.pop(context, downloadUrl);
-      print('Image uploaded: $downloadUrl');
     } catch (e) {
-      print('Error uploading: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload image: $e')),
+      );
     } finally {
       setState(() {
         _isUploading = false;
@@ -84,34 +70,67 @@ class _ImageUploadScreenState extends State<ImageUploadScreen> {
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Upload Image')),
+      appBar: AppBar(
+        title: Text('Upload Image'),
+        backgroundColor: Colors.red,
+      ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _image != null
-                ? Image.file(_image!)
-                : Icon(Icons.image, size: 100, color: Colors.grey),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _pickImage,
-              child: Text('Select Image'),
-            ),
-            SizedBox(height: 10),
-            if (_isUploading)
-              CircularProgressIndicator()
-            else
-              ElevatedButton(
-                onPressed: () => _uploadImage(context),
-                child: Text('Upload Image'),
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_image != null)
+                Container(
+                  height: 200,
+                  width: 200,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Image.file(
+                    _image!,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Container(
+                  height: 200,
+                  width: 200,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.add_photo_alternate, size: 50, color: Colors.grey),
+                ),
+              SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _pickImage,
+                icon: Icon(Icons.photo_library),
+                label: Text('Select Image'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
               ),
-          ],
+              SizedBox(height: 10),
+              if (_isUploading)
+                CircularProgressIndicator()
+              else if (_image != null)
+                ElevatedButton.icon(
+                  onPressed: _uploadImage,
+                  icon: Icon(Icons.cloud_upload),
+                  label: Text('Upload Image'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/PromoCodeScreen.dart';
+import 'package:frontend/screens/avis_screen.dart';
 import 'package:frontend/screens/banner_screen.dart';
 import 'package:frontend/screens/categories_screen.dart';
 import 'package:frontend/screens/clients_screen.dart';
@@ -40,6 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildDashboardCard(context, 'Clients', Icons.people, Colors.orange, ClientsScreen()),
             _buildDashboardCard(context, 'Restaurants', Icons.restaurant, Colors.redAccent, RestaurantScreen()),
             _buildDashboardCard(context, 'Promo Codes', Icons.card_giftcard, Colors.teal, PromoCodeScreen()),
+            _buildDashboardCard(context, 'Avis', Icons.add_comment_outlined, Colors.deepPurpleAccent, AvisScreen()),
 
           ],
         ),
